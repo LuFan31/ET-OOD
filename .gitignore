@@ -1,6 +1,8 @@
 10**/
 TRY/
-ima/
+ima**/
 cifar/
 EXP**/
 scripts/
+__py**/
+.idea/
