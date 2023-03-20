@@ -1,0 +1,33 @@
+name: cifar10_benchmark
+
+dataset:
+  # Training datasets
+  labeled: cifar10 # choices: [cifar10, cifar100]
+  unlabeled: tin # choices: [tin, none]
+
+  # choices: [cifar10, texture, svhn, cifar100, tin, lsun, places365]
+  test_ood: [tin]
+
+  labeled_batch_size: 64
+  unlabeled_batch_size: 128
+  test_batch_size: 200
+
+trainer_args:
+  lambda_oe: 0.5 
+  lambda_rep: 0.3
+  num_clusters: 1024
+  t: 0.1
+lamda: 10.0
+
+
+optim_args:
+  epochs: 180
+  learning_rate: 0.1
+  min_lr: 0.000001
+  momentum: 0.9
+  weight_decay: 0.0005
+
+postprocess: ene # choices: [msp, odin, ene]
+postprocess_args:
+  # temperature: 100 # ene, odin
+  # noise: 0.0014 # odin
