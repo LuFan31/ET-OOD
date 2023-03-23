@@ -1,4 +1,4 @@
-# Uncertainty-Aware Optimal Transport for Semantically Coherent Out-of-Distribution Detection
+# Uncertainty-Aware Optimal Transport for Semantically Coherent Out-of-Distribution Detection （CVPR 2023）
 
 **SCOOD benchmarks download link:**<br>[![gdrive](https://img.shields.io/badge/SCOOD%20dataset-google%20drive-f39f37)](https://drive.google.com/file/d/1cbLXZ39xnJjxXnDM7g2KODHIjE0Qj4gu/view?usp=sharing)&nbsp;
 [![onedrive](https://img.shields.io/badge/SCOOD%20dataset-onedrive-blue)](https://entuedu-my.sharepoint.com/:u:/r/personal/jingkang001_e_ntu_edu_sg/Documents/scood_benchmark.zip?csf=1&web=1&e=vl8nr8)  
@@ -31,7 +31,18 @@ bash cifar10.sh output_dir data_dir
 ```bash
 bash cifar100.sh output_dir data_dir
 ```
+The results will be saved in output_dir/results.csv.
 
 ## Acknowledgments
 This paper follows the excellent work from [SCOOD](https://jingkang50.github.io/projects/scood).
 
+## Cite
+If our work is useful for your research, please consider citing our [paper](https://arxiv.org/abs/2303.10449) :
+```
+@inproceedings{lu2022etood,
+  title={Uncertainty-Aware Optimal Transport for Semantically Coherent Out-of-Distribution Detection},
+  author={Fan Lu, Kai Zhu, Wei Zhai, Kecheng Zheng and Yang Cao},
+  booktitle={CVPR},
+  year={2023}
+}
+```
