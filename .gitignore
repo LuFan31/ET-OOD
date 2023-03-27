@@ -6,3 +6,8 @@ EXP**/
 scripts/
 __py**/
 .idea/
+.detignore
+run.sh
+run.yaml
+log.txt
+start**

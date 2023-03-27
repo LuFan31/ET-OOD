@@ -59,7 +59,7 @@ def main(args, config):
     checkpoint = args.checkpoint
     if checkpoint:
         net.load_state_dict(torch.load(checkpoint), strict=False)
-        print("Model Loading Completed!")
+        print("Checkpoint Loading Completed!")
     net.eval()
 
     if args.ngpu > 1:
@@ -80,7 +80,12 @@ def main(args, config):
     
     set_seed(3407)
     evaluator = Evaluator(net)
-
+    
+    output_dir = args.csv_path.split('/')
+    if len(output_dir) >= 3:
+        output_dir = '/'.join(output_dir[:-1])
+    else:
+        output_dir = output_dir[0]
     evaluator.eval_ood(
         test_id_loader,
         test_ood_loader_list,
@@ -88,7 +93,9 @@ def main(args, config):
         method=config["eval_method"],
         dataset_type=config["dataset_type"],
         csv_path=args.csv_path,
+        output_dir=output_dir
     )
+    print('Evaluation Completed! Results are saved in "{}"'.format(args.csv_path))
 
 
 if __name__ == "__main__":

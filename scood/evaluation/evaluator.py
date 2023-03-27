@@ -6,6 +6,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import logging
 from scood.postprocessors import BasePostprocessor
 from torch.utils.data import DataLoader
 
@@ -84,19 +85,21 @@ class Evaluator:
         method: str = "each",
         dataset_type: str = "scood",
         csv_path: str = None,
+        output_dir: str = None,
     ):
         self.net.eval()
 
         if postprocessor is None:
             postprocessor = BasePostprocessor()
-
+        
+        logging.basicConfig(filename=str(output_dir)+'/log.txt', level=logging.INFO)
 
         if method == "each":
             results_matrix = []
 
             id_name = id_data_loader.dataset.name 
 
-            print(f"Performing inference on {id_name} dataset...")
+            logging.info(f"Performing inference on {id_name} dataset...")
             id_pred, id_conf, id_conf1, id_ddood, id_scood = self.inference(
                 id_data_loader, postprocessor
             )
@@ -104,7 +107,7 @@ class Evaluator:
             for i, ood_dl in enumerate(ood_data_loaders):
                 ood_name = ood_dl.dataset.name
 
-                print(f"Performing inference on {ood_name} dataset...")
+                logging.info(f"Performing inference on {ood_name} dataset...")
                 ood_pred, ood_conf, ood_conf1, ood_ddood, ood_scood = self.inference(
                     ood_dl, postprocessor
                 )
@@ -120,24 +123,24 @@ class Evaluator:
                 elif dataset_type == "ddood":
                     label = ddood
 
-                print(f"Computing metrics on {id_name} + {ood_name} dataset...")
-                results = compute_all_metrics(conf, conf1, label, pred)
+                logging.info(f"Computing metrics on {id_name} + {ood_name} dataset...")
+                results = compute_all_metrics(conf, conf1, label, pred, output_dir)
                 self._log_results(results, csv_path, dataset_name=ood_name)
 
                 results_matrix.append(results)
 
             results_matrix = np.array(results_matrix)
 
-            print(f"Computing mean metrics...")
+            logging.info(f"Computing mean metrics...")
             results_mean = np.mean(results_matrix, axis=0)
             [fpr, auroc, aupr_in, aupr_out, ccr_4, ccr_3, ccr_2, ccr_1, accuracy] = results_mean
             recall = 0.95
-            print(
+            logging.info(
             "FPR@{}: {:.2f}, AUROC: {:.2f}, AUPR_IN: {:.2f}, AUPR_OUT: {:.2f}".format(
                 recall, 100 * fpr, 100 * auroc, 100 * aupr_in, 100 * aupr_out
                 )
             )
-            print(
+            logging.info(
             "CCR: {:.2f}, {:.2f}, {:.2f}, {:.2f}, ACC: {:.2f}".format(
                 ccr_4 * 100, ccr_3 * 100, ccr_2 * 100, ccr_1 * 100, accuracy * 100
                 )
@@ -149,7 +152,7 @@ class Evaluator:
             pred_list, conf_list, conf1_list, ddood_list, scood_list = ([],[],[],[],[],)
             for i, test_loader in enumerate(data_loaders):
                 name = test_loader.dataset.name
-                print(f"Performing inference on {name} dataset...")
+                logging.info(f"Performing inference on {name} dataset...")
                 pred, conf, conf1, ddood, scood = self.inference(test_loader, postprocessor)
                 pred_list.extend(pred)
                 conf_list.extend(conf)
@@ -168,8 +171,8 @@ class Evaluator:
             elif dataset_type == "ddood":
                 label_list = ddood_list
 
-            print(f"Computing metrics on combined dataset...")
-            results = compute_all_metrics(conf_list, conf1_list, label_list, pred_list)
+            logging.info(f"Computing metrics on combined dataset...")
+            results = compute_all_metrics(conf_list, conf1_list, label_list, pred_list, output_dir)
             if csv_path:
                 self._log_results(results, csv_path, dataset_name="full")
 

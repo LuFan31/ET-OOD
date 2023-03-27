@@ -7,6 +7,8 @@ from scood.losses import rew_ce, rew_sce,Extension
 from scood.utils import sort_array
 from torch.utils.data import DataLoader
 from .base_trainer import BaseTrainer
+# import subprocess
+import logging
 
 
 class ETtrainer(BaseTrainer):
@@ -53,7 +55,8 @@ class ETtrainer(BaseTrainer):
         self.outs = [self.K] * self.hc
 
 
-    def train_epoch(self, epoch):
+    def train_epoch(self, epoch, output_dir):
+        logging.basicConfig(filename=str(output_dir)+'/log.txt', level=logging.INFO)
         if epoch >  - 1:
             self._run_clustering(epoch)
         metrics = self._compute_loss(epoch)
@@ -112,45 +115,44 @@ class ETtrainer(BaseTrainer):
     def EOT(self, N, OT_logits_list, epoch):
         sam_energy = torch.logsumexp(OT_logits_list / 1000, dim=1).cuda()
         # print('sam_energy_std = ', torch.std(sam_energy))
-        PS = nn.functional.softmax(OT_logits_list, 1).cuda()
+        Pen = nn.functional.softmax(OT_logits_list, 1).cuda()
         # if epoch % 50 == 0:
         #     N, K = OT_logits_list.shape
         #     print('sam_std=', sam_energy.reshape((1, N)), flush=True)
-        PS = PS.detach()
-        N, K = PS.shape
-        tt = time.time()
-        PS = PS.T  # now it is K x N
-        r = (torch.ones((K, 1)) / K).double()
+        Pen = Pen.detach()
+        N, K = Pen.shape
+        Pen = Pen.T
+        a = (torch.ones((K, 1)) / K).double()
         # r = F.normalize(r, p=1, dim=0)
-        r = r.cuda()
-        c = (torch.ones((N, 1)) / N).double()
+        a = a.cuda()
+        b = (torch.ones((N, 1)) / N).double()
         # c = F.normalize(c, p=1, dim=0)
-        c = c.cuda()
-        PS = torch.pow(PS, self.lamda).double()  # K x N
-        inv_K = (1. / K)
-        inv_K = (torch.tensor(inv_K)).double()
-        inv_K = inv_K.cuda()
-        inv_N = (sam_energy.reshape((N, 1))).double()
-        inv_N = F.normalize(inv_N, p=1, dim=0)
-        inv_N = inv_N.cuda()
+        b = b.cuda()
+        Pen = torch.pow(Pen, self.lamda).double()  # K x N
+        K_ini = (1. / K)
+        K_ini = (torch.tensor(K_ini)).double()
+        K_ini = K_ini.cuda()
+        N_ini = (sam_energy.reshape((N, 1))).double()
+        N_ini = F.normalize(N_ini, p=1, dim=0)
+        N_ini = N_ini.cuda()
         err = 1e3
         step = 0
         while err > 1e-1:
-            r = inv_K / (PS @ c)  # (KxN)@(N,1) = K x 1
-            c_new = inv_N / (r.T @ PS).T  # ((1,K)@(KxN)).t() = N x 1
+            a = K_ini / (Pen @ b)  # (KxN)@(N,1) = K x 1
+            b_iter = N_ini / (a.T @ Pen).T  # ((1,K)@(KxN)).t() = N x 1
             if step % 5 == 0:
-                sin_err = torch.abs(c / c_new - 1)
-                sin_err = torch.where(torch.isnan(sin_err), torch.full_like(sin_err, 0), sin_err)
-                err = torch.sum(sin_err)
-            c = c_new
+                err_iter = torch.abs(b / b_iter - 1)
+                err_iter = torch.where(torch.isnan(err_iter), torch.full_like(err_iter, 0), err_iter)
+                err = torch.sum(err_iter)
+            b = b_iter
             step += 1
-        PS *= np.squeeze(c) 
-        PS = PS.T  # N × K
-        PS *= np.squeeze(r)  
-        PS = PS.T  # K × N
-        PS = torch.where(torch.isnan(PS), torch.full_like(PS, 0), PS)
-        label_ET = torch.argmax(PS, 0)  # size N
-        print('step =', step, "err =", err.item(), flush=True)
+        Pen *= np.squeeze(b) 
+        Pen = Pen.T  # N × K
+        Pen *= np.squeeze(a)  
+        Pen = Pen.T  # K × N
+        Pen = torch.where(torch.isnan(Pen), torch.full_like(Pen, 0), Pen)
+        label_ET = torch.argmax(Pen, 0)  # size N
+        logging.info(f"Step {step}, err={err.item()}",)
         return label_ET
 
     def _run_clustering(self, epoch):
@@ -158,9 +160,9 @@ class ETtrainer(BaseTrainer):
         start_time = time.time()
 
         # get data from train loader
-        print(
+        logging.info(
             "######### ET: gathering OT_logits... ############",
-            flush=True,  
+            # flush=True,  
         )
         train_idx_list, unlabeled_idx_list, OT_logits_list, train_label_list = ([],[],[],[],)
         train_dataiter = iter(self.labeled_train_loader)
@@ -272,4 +274,6 @@ class ETtrainer(BaseTrainer):
 
         self.unlabeled_train_loader.dataset.pseudo_label = new_pseudo_label[num_train_data:] 
 
-        print("######### Label Assignment Completed! Duration: {:.2f}s ############".format(time.time() - start_time),flush=True, )
+        logging.info("######### Label Assignment Completed! Duration: {:.2f}s ############".format(time.time() - start_time),
+                    #  flush=True, 
+                     )

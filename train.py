@@ -10,6 +10,7 @@ import torch.backends.cudnn as cudnn
 import numpy as np
 import os
 import pdb
+import logging
 
 from scood.data import get_dataloader, get_ext_dataloader
 from scood.evaluation import Evaluator
@@ -17,7 +18,6 @@ from scood.postprocessors import get_postprocessor
 from scood.networks import ResNet18
 from scood.trainers import get_ETtrainer, ETtrainer
 from scood.utils import load_yaml, setup_logger
- 
 
 
 
@@ -26,12 +26,12 @@ def main(args, config):
     output_dir.mkdir(parents=True, exist_ok=True)
     # expt_output_dir = (output_dir / config["name"]).mkdir(parents=True, exist_ok=True)
 
-    # Save a copy of config file in output directory
     config_path = Path(args.config)
     config_save_path = output_dir / "config.yml"
     shutil.copy(config_path, config_save_path)
 
-    setup_logger(str(output_dir))
+    # setup_logger(str(output_dir))
+    logging.basicConfig(filename=str(output_dir)+'/log.txt', level=logging.INFO)
 
     benchmark = config["dataset"]["labeled"]
     if benchmark == "cifar10":
@@ -161,7 +161,7 @@ def main(args, config):
     begin_epoch = time.time()
     best_accuracy = 0.0
     for epoch in range(0, config["optim_args"]["epochs"]):
-        train_metrics = trainer.train_epoch(epoch)
+        train_metrics = trainer.train_epoch(epoch, output_dir)
 
 
         classification_metrics = evaluator.eval_classification(test_id_loader)
@@ -173,6 +173,7 @@ def main(args, config):
             postprocessor=postprocessor,
             method="full",
             dataset_type="scood",
+            output_dir = output_dir,
         )
 
         # Save model
@@ -188,7 +189,7 @@ def main(args, config):
 
             best_accuracy = classification_metrics["test_accuracy"]
 
-        print(
+        logging.info(
             "Epoch {:3d} | Time {:5d}s | Train Loss {:.4f} | Test Loss {:.3f} | Test Acc {:.2f}".format(
                 (epoch + 1),
                 int(time.time() - begin_epoch),
@@ -196,8 +197,9 @@ def main(args, config):
                 classification_metrics["test_loss"],
                 100.0 * classification_metrics["test_accuracy"],
             ),
-            flush=True,
+            # flush=True,
         )
+        print('Training Completed!')
 
 
 if __name__ == "__main__":

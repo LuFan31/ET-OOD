@@ -3,6 +3,7 @@ import os
 
 import numpy as np
 from sklearn import metrics
+import logging
 
 
 # fpr_recall
@@ -69,7 +70,8 @@ def auc(conf, label):
     return auroc, aupr_in, aupr_out
 
 
-def compute_all_metrics(conf, conf1, label, pred, file_path=None, verbose=True):
+def compute_all_metrics(conf, conf1, label, pred, output_dir, file_path=None, verbose=True):
+    logging.basicConfig(filename=str(output_dir)+'/log.txt', level=logging.INFO)
     recall = 0.95
     fpr, thresh = fpr_recall(conf, label, recall)
     auroc, aupr_in, aupr_out = auc(conf1, label)
@@ -82,12 +84,12 @@ def compute_all_metrics(conf, conf1, label, pred, file_path=None, verbose=True):
     accuracy = acc(pred, label)
 
     if verbose:
-        print(
+        logging.info(
             "FPR@{}: {:.2f}, AUROC: {:.2f}, AUPR_IN: {:.2f}, AUPR_OUT: {:.2f}".format(
                 recall, 100 * fpr, 100 * auroc, 100 * aupr_in, 100 * aupr_out
             )
         )
-        print(
+        logging.info(
             "CCR: {:.2f}, {:.2f}, {:.2f}, {:.2f}, ACC: {:.2f}".format(
                 ccr_4 * 100, ccr_3 * 100, ccr_2 * 100, ccr_1 * 100, accuracy * 100
             )
