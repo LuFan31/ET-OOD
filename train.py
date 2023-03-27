@@ -199,7 +199,7 @@ def main(args, config):
             ),
             # flush=True,
         )
-        print('Training Completed!')
+    print('Training Completed!')
 
 
 if __name__ == "__main__":
